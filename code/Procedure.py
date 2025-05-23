@@ -50,17 +50,17 @@ def test_one_batch(X):
     # print(X)
     sorted_items = X[0].numpy()
     groundTrue = X[1]
-    similarities = X[2]  # 获取相似度分数
+    similarities = X[2]  
     # print(sorted_items)
     # print(groundTrue)
     if sorted_items.ndim == 1:
-        sorted_items = sorted_items.reshape(1, -1)  # 转换为 (1, n)
+        sorted_items = sorted_items.reshape(1, -1) 
     if type(groundTrue) == set:
         groundTrue_list = []
         groundTrue_list.append(groundTrue)
         groundTrue = groundTrue_list
     # if groundTrue.ndim == 1:
-    #     groundTrue = groundTrue.reshape(1, -1)  # 转换为 (1, n)
+    #     groundTrue = groundTrue.reshape(1, -1)  
     r = utils.getLabel(groundTrue, sorted_items)
     pre, recall, ndcg = [], [], []
     for k in world.topks:
@@ -71,7 +71,7 @@ def test_one_batch(X):
     return {'recall':np.array(recall), 
             'precision':np.array(pre), 
             'ndcg':np.array(ndcg),
-            'similarities': similarities}  # 返回相似度分数
+            'similarities': similarities}  
         
             
 def Test(dataset, Recmodel, epoch, multicore=0):
@@ -98,14 +98,14 @@ def Test(dataset, Recmodel, epoch, multicore=0):
         users_list = []
         rating_list = []
         groundTrue_list = []
-        similarity_list = []  # 存储相似度分数
+        similarity_list = [] 
         for batch_users in utils.minibatch(users, batch_size=u_batch_size):
             groundTrue = [testLabelDict[u] for u in batch_users]
             batch_users_gpu = torch.Tensor(batch_users).long()
             batch_users_gpu = batch_users_gpu.to(world.device)
             rating = Recmodel.getUsersRating(batch_users_gpu)
-            similarities = rating.cpu().numpy()  # 获取相似度分数
-            rating_K, rating_K_indices = torch.topk(rating, k=max_K)  # 获取前k个的索引
+            similarities = rating.cpu().numpy() 
+            rating_K, rating_K_indices = torch.topk(rating, k=max_K) 
             rating = rating.cpu().numpy()
             del rating       
             for user,gt,rat,sim in zip(batch_users,groundTrue,rating_K_indices.cpu(),similarities):
@@ -116,17 +116,17 @@ def Test(dataset, Recmodel, epoch, multicore=0):
                 all_dict[user]['ndcg'] = result['ndcg'].tolist()
                 all_dict[user]['rating'] = rat.tolist()
                 all_dict[user]['groundTrue'] = list(gt)
-                # 保存ground truth中每个tool对应的相似度分数
+        
                 gt_similarities = {}
                 for tool_id in gt:
-                    if tool_id < len(sim):  # 确保tool_id在范围内
+                    if tool_id < len(sim):  
                         gt_similarities[str(tool_id)] = float(sim[tool_id])
                 all_dict[user]['gt_similarities'] = gt_similarities
             users_list.append(batch_users)
             rating_list.append(rating_K_indices.cpu())
             groundTrue_list.append(groundTrue)
-            similarity_list.append(similarities)  # 保存所有相似度分数
-        X = zip(rating_list, groundTrue_list, similarity_list)  # 添加相似度分数到zip
+            similarity_list.append(similarities)  
+        X = zip(rating_list, groundTrue_list, similarity_list)  
         if multicore == 1:
             pre_results = pool.map(test_one_batch, X)
         else:
